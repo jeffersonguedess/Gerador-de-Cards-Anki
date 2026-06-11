@@ -1,0 +1,8 @@
+{
+    "NOTION_TOKEN": "SEU_TOKEN_AQUI",
+    "NOTION_DATABASE_ID": "SEU_ID_DO_NOTION_AQUI",
+    "OPENROUTER_API_KEY": "SUA_CHAVE_OPENROUTER_AQUI",
+    "DECK_NAME": "Linux",
+    "AI_MODEL": "google/gemini-2.5-flash",
+    "AI_MODEL_FALLBACK": "meta-llama/llama-3-8b-instruct:free"
+}

@@ -1,0 +1,8 @@
+{
+    "NOTION_TOKEN": "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",
+    "NOTION_DATABASE_ID": "223fda357277460297c020d0282dee03",
+    "OPENROUTER_API_KEY": "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",
+    "AI_MODEL": "google/gemini-2.5-flash",
+    "AI_MODEL_FALLBACK": "meta-llama/llama-3-8b-instruct:free",
+    "DECK_NAME": "Debian"
+}
