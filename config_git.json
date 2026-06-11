@@ -1,0 +1,7 @@
+{
+    "OPENROUTER_API_KEY": "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",
+    "NOTION_TOKEN": "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",
+    "NOTION_PAGE_ID": "37c9e0643ded80628599e90a1b809981",
+    "AI_MODEL": "deepseek/deepseek-chat",
+    "DECK_NAME": "Git::Comandos"
+}
