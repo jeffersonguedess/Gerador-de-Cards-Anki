@@ -1,0 +1,20 @@
+{
+    "sdsdsd": {
+        "NOTION_TOKEN": "",
+        "NOTION_DATABASE_ID": "",
+        "OPENROUTER_API_KEY": "",
+        "DECK_NAME": "Default",
+        "AI_MODEL": "google/gemini-2.5-flash",
+        "AI_MODEL_FALLBACK": "meta-llama/llama-3-8b-instruct:free",
+        "THEME": "Dark Purple Edition"
+    },
+    "sdsdsdsaDADS": {
+        "NOTION_TOKEN": "",
+        "NOTION_DATABASE_ID": "",
+        "OPENROUTER_API_KEY": "",
+        "DECK_NAME": "Default",
+        "AI_MODEL": "google/gemini-2.5-flash",
+        "AI_MODEL_FALLBACK": "meta-llama/llama-3-8b-instruct:free",
+        "THEME": "Dark Purple Edition"
+    }
+}

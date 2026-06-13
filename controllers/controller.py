@@ -1,3 +1,4 @@
+# controllers/controller.py
 import threading
 from tkinter import messagebox
 import tkinter as tk
@@ -9,107 +10,158 @@ class CardForgeController:
         
         self.conectar_eventos()
         self.sincronizar_lista_perfis()
-        self.view.atualizar_tema_interface()
-        self.view.log("🤖 Core Engine pronto via padrão MVC. Escolha o seu perfil de estudos.")
+        
+        # Ativa o tema padrão inicial
+        self.view.atualizar_tema_visual()
+        self.view.log("🤖 Core Engine pronto via padrão MVC. Escolha ou crie um perfil de estudos.")
 
     def conectar_eventos(self):
-        # Traces das variáveis de controle
-        self.view.combo_perfis.trace_add("write", lambda *a: self.carregar_dados_perfil())
-        self.view.str_tema.trace_add("write", lambda *a: self.view.atualizar_tema_interface())
+        """Mapeia com precisão os novos componentes da View aos métodos do Controller."""
+        # Detecta mudança de perfil para recarregar os inputs automaticamente
+        self.view.str_perfil_ativo.trace_add("write", lambda *a: self.carregar_dados_perfil())
         
-        # Cliques dos Botões
-        self.view.btn_novo.config(command=lambda: self.view.abrir_popup_novo_perfil(self.criar_perfil))
-        self.view.btn_salvar.config(command=self.salvar_dados_perfil)
-        self.view.btn_gerar.config(command=self.disparar_motor_geracao)
-        
-        # Botões de Olho (visibilidade)
-        self.view.btn_olho_notion.config(command=lambda: self.view.toggle_visibilidade(self.view.ent_notion_token, self.view.btn_olho_notion))
-        self.view.btn_olho_or.config(command=lambda: self.view.toggle_visibilidade(self.view.ent_openrouter_key, self.view.btn_olho_or))
+        # Cliques de botões (Ajustados com os novos nomes da View)
+        self.view.btn_novo_perfil.config(command=self.handle_novo_perfil)
+        self.view.btn_salvar_perfil.config(command=self.salvar_dados_perfil)
+        self.view.btn_generar.config(command=self.disparar_motor_geracao)
 
-    def sincronizar_lista_perfis(self, selecionar=None):
-        perfis = self.model.obter_perfis()
-        menu = self.view.dropdown_perfis["menu"]
-        menu.delete(0, "end")
+    def sincronizar_lista_perfis(self):
+        """Atualiza o dropdown de perfis buscando dados atualizados do Model."""
+        perfis = self.model.listar_perfis()
+        self.view.cb_perfil["values"] = perfis
         
-        for p in perfis:
-            menu.add_command(label=p, command=lambda v=p: self.view.combo_perfis.set(v))
-            
         if perfis:
-            self.view.combo_perfis.set(selecionar if selecionar in perfis else perfis[0])
+            # Se já houver perfis, seleciona o primeiro por padrão caso esteja vazio
+            if not self.view.str_perfil_ativo.get() or self.view.str_perfil_ativo.get() not in perfis:
+                self.view.str_perfil_ativo.set(perfis[0])
         else:
-            self.limpar_campos_interface()
+            self.view.str_perfil_ativo.set("")
 
     def carregar_dados_perfil(self):
-        nome = self.view.combo_perfis.get()
-        if not nome: return
-        config = self.model.carregar_perfil(nome)
-        if not config: return
-        
-        self.limpar_campos_interface()
-        self.view.ent_notion_token.insert(0, config.get("NOTION_TOKEN", ""))
-        self.view.ent_notion_id.insert(0, config.get("NOTION_DATABASE_ID") or config.get("NOTION_PAGE_ID", ""))
-        self.view.ent_openrouter_key.insert(0, config.get("OPENROUTER_API_KEY", ""))
-        self.view.ent_deck_name.insert(0, config.get("DECK_NAME", nome))
-        self.view.str_model_principal.set(config.get("AI_MODEL", ""))
-        self.view.str_model_fallback.set(config.get("AI_MODEL_FALLBACK", ""))
-        self.view.str_tema.set(config.get("THEME", "Dark Purple Edition"))
-        
-        self.view.log(f"📁 Perfil '{nome}' carregado. Layout: [{self.view.str_tema.get()}]")
-
-    def limpar_campos_interface(self):
-        self.view.ent_notion_token.delete(0, tk.END)
-        self.view.ent_notion_id.delete(0, tk.END)
-        self.view.ent_openrouter_key.delete(0, tk.END)
-        self.view.ent_deck_name.delete(0, tk.END)
-
-    def criar_perfil(self, nome, popup):
-        if not nome or f"{nome}.json" in self.model.obter_perfis():
-            messagebox.showerror("Erro", "Nome inválido ou perfil já existente.", parent=popup)
+        """Busca as configurações do perfil selecionado e injeta na tela."""
+        nome_perfil = self.view.str_perfil_ativo.get()
+        if not nome_perfil:
             return
-        self.model.criar_novo_perfil(nome, self.view.str_tema.get())
-        self.view.log(f"✨ Perfil '{nome}' criado.")
-        popup.destroy()
-        self.sincronizar_lista_perfis(selecionar=nome)
+            
+        # Carrega o banco de perfis de forma segura e resiliente
+        try:
+            with open(self.model.arquivo_perfis, "r", encoding="utf-8") as f:
+                import json
+                perfis = json.load(f)
+                dados = perfis.get(nome_perfil, {})
+        except:
+            dados = {}
+            
+        # Alimenta todos os campos e dropdowns de IA da View de uma vez só!
+        self.view.preencher_campos(dados)
 
     def salvar_dados_perfil(self):
-        nome = self.view.combo_perfis.get()
-        if not nome: return
+        """Captura os dados da tela em lote e salva permanentemente no Model."""
+        nome_perfil = self.view.str_perfil_ativo.get()
+        if not nome_perfil:
+            messagebox.showwarning("Aviso", "Por favor, selecione ou crie um perfil primeiro!")
+            return
+            
+        # Coleta o dicionário limpo e centralizado direto da View
+        dados_completos = self.view.obter_dados_campos()
         
-        config = {
-            "NOTION_TOKEN": self.view.ent_notion_token.get().strip(),
-            "NOTION_DATABASE_ID": self.view.ent_notion_id.get().strip(),
-            "OPENROUTER_API_KEY": self.view.ent_openrouter_key.get().strip(),
-            "DECK_NAME": self.view.ent_deck_name.get().strip(),
-            "AI_MODEL": self.view.str_model_principal.get().strip(),
-            "AI_MODEL_FALLBACK": self.view.str_model_fallback.get().strip(),
+        # Salva utilizando o mecanismo do seu Model
+        try:
+            with open(self.model.arquivo_perfis, "r", encoding="utf-8") as f:
+                import json
+                perfis = json.load(f)
+        except:
+            perfis = {}
+            
+        perfis[nome_perfil] = dados_completos
+        self.model.salvar_todos_perfis(perfis)
+        
+        self.view.log(f"💾 Perfil '{nome_perfil}' e suas preferências de IA foram salvos com sucesso!")
+
+    def handle_novo_perfil(self):
+        """Dispara a janela popup customizada e estilizada para criação de matéria."""
+        self.view.abrir_popup_novo_perfil(self.confirmar_criacao_perfil)
+
+    def confirmar_criacao_perfil(self, nome_novo, popup_janela):
+        """Valida e cria a nova chave de perfil no arquivo de registros."""
+        if not nome_novo:
+            return
+            
+        perfis_existentes = self.model.listar_perfis()
+        if nome_novo in perfis_existentes:
+            messagebox.showwarning("Aviso", f"O perfil '{nome_novo}' já existe no sistema!")
+            return
+            
+        # Estrutura inicial padrão com os novos campos integrados
+        dados_padrao = {
+            "NOTION_TOKEN": "",
+            "NOTION_DATABASE_ID": "",
+            "OPENROUTER_API_KEY": "",
+            "DECK_NAME": "Default",
+            "AI_MODEL": "google/gemini-2.5-flash",
+            "AI_MODEL_FALLBACK": "meta-llama/llama-3-8b-instruct:free",
             "THEME": self.view.str_tema.get()
         }
-        self.model.salvar_perfil(nome, config)
-        self.view.log(f"💾 Perfil 'perfis/{nome}.json' guardado e sincronizado.")
-        messagebox.showinfo("Sucesso", f"Definições de '{nome}' foram salvas!")
+        
+        try:
+            with open(self.model.arquivo_perfis, "r", encoding="utf-8") as f:
+                import json
+                perfis = json.load(f)
+        except:
+            perfis = {}
+            
+        perfis[nome_novo] = dados_padrao
+        self.model.salvar_todos_perfis(perfis)
+        
+        # Recarrega a interface e foca no perfil recém-criado
+        self.sincronizar_lista_perfis()
+        self.view.str_perfil_ativo.set(nome_novo)
+        
+        popup_janela.destroy()
+        self.view.log(f"✨ Sucesso! Perfil de estudos '{nome_novo}' foi gerado.")
 
     def disparar_motor_geracao(self):
-        nome = self.view.combo_perfis.get()
-        if not nome: return
+        """Extrai o texto e envia para o motor de IA em segundo plano (Thread)."""
+        nome_perfil = self.view.str_perfil_ativo.get()
+        texto_estudo = self.view.txt_material.get("1.0", tk.END).strip()
         
-        dados = {
-            "token": self.view.ent_notion_token.get().strip(),
-            "id_notion": self.view.ent_notion_id.get().strip(),
-            "api_key_or": self.view.ent_openrouter_key.get().strip(),
-            "deck_name": self.view.ent_deck_name.get().strip(),
-            "model_principal": self.view.str_model_principal.get().strip(),
-            "model_fallback": self.view.str_model_fallback.get().strip()
-        }
-        
-        self.view.btn_gerar.config(state="disabled")
-        threading.Thread(target=self._executar_fluxo_background, args=(nome, dados), daemon=True).start()
-
-    def _executar_fluxo_background(self, nome, dados):
-        resultado = self.model.fluxo_geracao_core(nome, dados, self.view.log)
-        
-        if isinstance(resultado, int) and resultado > 0:
-            messagebox.showinfo("Concluído", f"{resultado} flashcards foram enviados para o Anki!")
-        elif resultado == "sincronizado":
-            messagebox.showinfo("Sincronizado", "Tudo pronto! Nenhuma nota nova encontrada.")
+        if not nome_perfil:
+            messagebox.showwarning("Aviso", "Selecione um perfil de estudos ativo.")
+            return
+        if not texto_estudo or len(texto_estudo) < 5:
+            messagebox.showwarning("Aviso", "Insira um conteúdo/material de estudo válido para gerar.")
+            return
             
-        self.view.btn_gerar.config(state="normal")
+        dados_perfil = self.view.obter_dados_campos()
+        
+        # Bloqueia o botão para evitar cliques duplos acidentais
+        self.view.btn_generar.config(state="disabled")
+        self.view.limpar_console()
+        
+        # Inicializa o processo em background de forma assíncrona
+        threading.Thread(
+            target=self._executar_fluxo_background, 
+            args=(nome_perfil, dados_perfil, texto_estudo), 
+            daemon=True
+        ).start()
+
+    def _executar_fluxo_background(self, nome, dados_perfil, texto_estudo):
+        """Executa a chamada na OpenRouter e integração com o Anki sem travar a interface."""
+        try:
+            # Tenta executar pelo método core ou pela versão adaptada de envio
+            if hasattr(self.model, "fluxo_geracao_core"):
+                resultado = self.model.fluxo_geracao_core(nome, dados_perfil, self.view.log)
+            else:
+                resultado = self.model.gerar_e_enviar_cards(dados_perfil, texto_estudo, self.view.log)
+            
+            # Trata as respostas visuais de sucesso
+            if isinstance(resultado, int) and resultado > 0:
+                messagebox.showinfo("Concluído", f"🎉 {resultado} flashcards novos foram gerados e sincronizados no seu Anki!")
+            elif resultado == "sincronizado" or resultado is True:
+                messagebox.showinfo("Concluído", "🚀 O motor de dados finalizou as operações com êxito!")
+                
+        except Exception as e:
+            self.view.log(f"❌ Erro crítico na execução em background: {e}")
+        finally:
+            # Devolve o controle do botão para o usuário
+            self.view.btn_generar.config(state="normal")   
