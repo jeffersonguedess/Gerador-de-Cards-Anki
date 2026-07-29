@@ -115,6 +115,8 @@ class CardForgeView:
         self.cb_modelo_principal.set(MODELOS_PRINCIPAIS[0])
         self.comboboxes.append(self.cb_modelo_principal)
         
+        self.cb_modelo_principal.bind("<<ComboboxSelected>>", self.ao_selecionar_modelo_principal)
+        
         # 🌟 INTEGRAÇÃO NOVO CAMPO - Linha 6: Dropdown do Modelo Reserva (Fallback)
         lbl_mod_r = tk.Label(frame_perfil, text="Modelo Reserva:")
         lbl_mod_r.grid(row=6, column=0, sticky="w", padx=5, pady=5)
@@ -124,6 +126,8 @@ class CardForgeView:
         self.cb_modelo_reserva.grid(row=6, column=1, columnspan=2, sticky="ew", padx=5, pady=5)
         self.cb_modelo_reserva.set(MODELOS_RESERVA[0])
         self.comboboxes.append(self.cb_modelo_reserva)
+        
+        self.cb_modelo_reserva.bind("<<ComboboxSelected>>", self.ao_selecionar_modelo_reserva)
         
         # Linha 7: Seleção de Tema e Botão de Salvar Configurações do Perfil
         lbl_tema = tk.Label(frame_perfil, text="Tema Visual:")
@@ -342,4 +346,14 @@ class CardForgeView:
             else:
                 messagebox.showwarning("Aviso", "O nome não pode ser vazio!", parent=popup)
 
-        tk.Button(popup, text="Salvar Alteração", bg=cores_atuais["destaque"], fg="white", bd=0, padx=15, pady=5, font=("Arial", 9, "bold"), command=acao_confirmar).pack(pady=10)    
+        tk.Button(popup, text="Salvar Alteração", bg=cores_atuais["destaque"], fg="white", bd=0, padx=15, pady=5, font=("Arial", 9, "bold"), command=acao_confirmar).pack(pady=10) 
+        
+    def ao_selecionar_modelo_principal(self, event):
+        if self.cb_modelo_principal.get() == "Outro (Digitar manualmente)":
+            self.cb_modelo_principal.config(state="normal")
+            self.cb_modelo_principal.set("")
+
+    def ao_selecionar_modelo_reserva(self, event):
+        if self.cb_modelo_reserva.get() == "Outro (Digitar manualmente)":
+            self.cb_modelo_reserva.config(state="normal")
+            self.cb_modelo_reserva.set("")       

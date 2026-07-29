@@ -73,5 +73,7 @@ Cada matéria possui suas próprias credenciais e preferências salvas localment
 1. Certifique-se de que o aplicativo do **Anki** está aberto em segundo plano.
 2. Certifique-se de ter a extensão **AnkiConnect** instalada no seu Anki.
 
+> ⚠️ **Aviso sobre Chaves de API:** O CardForge v6.0 utiliza o **OpenRouter** como agregador central de modelos de IA. O campo *OpenRouter Key* aceita **estritamente** chaves geradas dentro da plataforma OpenRouter (que geralmente iniciam com `sk-or-...`). Inserir chaves diretas de outras provedoras (como chaves puras da OpenAI, Google Gemini ou Anthropic) quebrará a comunicação com o motor e resultará em falhas de geração.
+
 # Gerador-de-Cards-Anki
 Estudando o Linux queria uma forma de estudar os comandos, saber o que cada um faz de forma simples, com perguntas pequenas e diretas. Então achei o software Anki, tem uma versão para computador e app para celulares, ele gera cards com perguntas e então vi que seria uma ideia automatizar de alguma forma a geração de perguntas com IA.
