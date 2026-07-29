@@ -10,7 +10,7 @@ O **CardForge** é uma aplicação desktop inteligente projetada para automatiza
 
 * **Sincronização com Notion:** Varredura em tempo real de blocos de texto estruturados em páginas ou bancos de dados.
 * **Inteligência Artificial Dupla:** Motor integrado com IA Principal e uma rota de IA Reserva (Fallback) automática para o caso de falhas ou falta de saldo na API.
-* **Gerenciador Multi-Perfil:** Salva credenciais, caminhos, modelos de IA e preferências visuais separadamente por matéria/tópico em arquivos `.json` locais.
+* **Gerenciador Avançado de Perfis (CRUD):** Permite criar, salvar, editar (renomear) e excluir perfis e tópicos de estudo diretamente pela interface gráfica, sem necessidade de manipulação manual de arquivos locais `.json`.
 * **Filtro Antiduplicidade:** Mecanismo de hashing MD5 que garante que apenas anotações inéditas virem flashcards, blindando o seu histórico de revisões.
 * **Interface Assíncrona:** Varreduras em segundo plano (*Multi-threading*) que impedem o congelamento da interface gráfica durante chamadas de rede.
 
@@ -38,7 +38,29 @@ O projeto foi desenvolvido de forma estritamente incremental e cronológica. Tod
 | **v4.0** | *Multi-Perfil Local* | Introdução da arquitetura de diretórios para múltiplos perfis de estudo e blindagem contra cards repetidos via hash MD5. |
 | **v4.1** | *Estabilização* | Otimização no pipeline de prompts da IA, tratamento robusto de exceções de rede e pequenos ajustes de lógica. |
 | **v5.0** | *Interface Gráfica* | Migração definitiva da CLI (Terminal) para o primeiro layout visual desktop desenvolvido nativamente em Tkinter. |
-| **v5.1** | *Customização Visual* |  Primeiro modelo de estilização *Dark Purple*. |
+| **v5.1** | *Customização Visual* | Primeiro modelo de estilização *Dark Purple*. |
+| **v6.0** | *Arquitetura MVC & CRUD* | Modularização completa do ecossistema dividida estritamente em Model-View-Controller, acoplamento assíncrono de eventos, gerenciador visual dinâmico de perfis (Criação, Edição e Exclusão rápida) e correção de estados visuais na interface. |
+
+---
+
+## 📖 Manual do Usuário (Guia Rápido)
+
+### 🧠 1. Regras de Estruturação no Notion
+Para que o motor capture os seus estudos corretamente, escreva uma linha curta e direta por comando ou conceito. O app gera um hash MD5 único de cada linha enviada, **filtrando automaticamente o que já foi enviado** e gerando cartões stritamente para as linhas inéditas.
+
+### 📂 2. Gerenciando Perfis e Matérias
+Cada matéria possui suas próprias credenciais e preferências salvas localmente:
+* **Criar/Editar:** Clique em `+ Novo` ou `Editar` para gerenciar as chaves e modelos de IA do perfil ativo.
+* **Estrutura de Decks:** No campo *Nome do Deck*, use dois pontos duplos (`::`) para segmentar subpastas organizacionais no Anki (Ex: `Git::Comandos`).
+* Sempre clique no botão roxo `💾 Salvar Perfil` após alterar qualquer configuração.
+
+### ⚡ 3. Modos de Sincronização
+* **Modo A (Automático via Notion):** Selecione o perfil de ambiente e clique em `🍇 Sincronizar via Notion`. O fluxo de logs assíncrono exibirá o andamento em tempo real.
+* **Modo B (Manual):** Cole o seu resumo diretamente na caixa *"Material de Estudo para Conversão Manual"* e clique em `📝 Converter Texto da Tela`.
+
+> 📥 **Quer o manual completo e diagramado no tema Dark Purple?** Acesse a nossa documentação oficial em PDF: **[Baixar Manual do Usuário (PDF)](./docs/manual_cardforge.pdf)**
+
+---
 
 ## ⚙️ Como Executar o Projeto
 
@@ -52,5 +74,4 @@ O projeto foi desenvolvido de forma estritamente incremental e cronológica. Tod
 2. Certifique-se de ter a extensão **AnkiConnect** instalada no seu Anki.
 
 # Gerador-de-Cards-Anki
-Estuando o Linux queria uma forma de estudar os comandos, saber oque cada um faz de forma simples, com perguntas pequenas e diretas. Então achei o software Anki, tem uma versã para computador e app para celulares, ele gera cards com perguntas e então vi que seria uma ideia automatizar de alguma forma a geração de perguntas com IA. 
-
+Estudando o Linux queria uma forma de estudar os comandos, saber o que cada um faz de forma simples, com perguntas pequenas e diretas. Então achei o software Anki, tem uma versão para computador e app para celulares, ele gera cards com perguntas e então vi que seria uma ideia automatizar de alguma forma a geração de perguntas com IA.
