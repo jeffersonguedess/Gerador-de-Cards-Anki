@@ -10,7 +10,7 @@ O **CardForge** é uma aplicação desktop inteligente projetada para automatiza
 
 * **Sincronização com Notion:** Varredura em tempo real de blocos de texto estruturados em páginas ou bancos de dados.
 * **Inteligência Artificial Dupla:** Motor integrado com IA Principal e uma rota de IA Reserva (Fallback) automática para o caso de falhas ou falta de saldo na API.
-* **Gerenciador Multi-Perfil:** Salva credenciais, caminhos, modelos de IA e preferências visuais separadamente por matéria/tópico em arquivos `.json` locais.
+* **Gerenciador Avançado de Perfis (CRUD):** Permite criar, salvar, editar (renomear) e excluir perfis e tópicos de estudo diretamente pela interface gráfica, sem necessidade de manipulação manual de arquivos locais `.json`.
 * **Filtro Antiduplicidade:** Mecanismo de hashing MD5 que garante que apenas anotações inéditas virem flashcards, blindando o seu histórico de revisões.
 * **Interface Assíncrona:** Varreduras em segundo plano (*Multi-threading*) que impedem o congelamento da interface gráfica durante chamadas de rede.
 
@@ -38,7 +38,8 @@ O projeto foi desenvolvido de forma estritamente incremental e cronológica. Tod
 | **v4.0** | *Multi-Perfil Local* | Introdução da arquitetura de diretórios para múltiplos perfis de estudo e blindagem contra cards repetidos via hash MD5. |
 | **v4.1** | *Estabilização* | Otimização no pipeline de prompts da IA, tratamento robusto de exceções de rede e pequenos ajustes de lógica. |
 | **v5.0** | *Interface Gráfica* | Migração definitiva da CLI (Terminal) para o primeiro layout visual desktop desenvolvido nativamente em Tkinter. |
-| **v5.1** | *Customização Visual* |  Primeiro modelo de estilização *Dark Purple*. |
+| **v5.1** | *Customização Visual* | Primeiro modelo de estilização *Dark Purple*. |
+| **v6.0** | *Arquitetura MVC & CRUD* | Modularização completa do ecossistema dividida estritamente em Model-View-Controller, acoplamento assíncrono de eventos, gerenciador visual dinâmico de perfis (Criação, Edição e Exclusão rápida) e correção de estados visuais na interface. |
 
 ## ⚙️ Como Executar o Projeto
 
@@ -52,5 +53,4 @@ O projeto foi desenvolvido de forma estritamente incremental e cronológica. Tod
 2. Certifique-se de ter a extensão **AnkiConnect** instalada no seu Anki.
 
 # Gerador-de-Cards-Anki
-Estuando o Linux queria uma forma de estudar os comandos, saber oque cada um faz de forma simples, com perguntas pequenas e diretas. Então achei o software Anki, tem uma versã para computador e app para celulares, ele gera cards com perguntas e então vi que seria uma ideia automatizar de alguma forma a geração de perguntas com IA. 
-
+Estudando o Linux queria uma forma de estudar os comandos, saber o que cada um faz de forma simples, com perguntas pequenas e diretas. Então achei o software Anki, tem uma versão para computador e app para celulares, ele gera cards com perguntas e então vi que seria uma ideia automatizar de alguma forma a geração de perguntas com IA.

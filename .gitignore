@@ -14,3 +14,5 @@ __pycache__/
 config.json
 config_git.json
 chaves API.TXT
+
+historicos/

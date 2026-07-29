@@ -39,18 +39,31 @@ class CardForgeView:
         frame_perfil.pack(fill="x", padx=padx_janela, pady=gap_medio)
         self.label_frames_cards.append(frame_perfil)
         
-        # Linha 0: Seleção de Perfil e Botão Criar Perfil
+        # Linha 0: Seleção de Perfil, Criar, Editar e Excluir Perfil
         lbl_perfil = tk.Label(frame_perfil, text="Perfil / Matéria:")
         lbl_perfil.grid(row=0, column=0, sticky="w", padx=5, pady=5)
         self.labels_normais.append(lbl_perfil)
         
-        self.cb_perfil = ttk.Combobox(frame_perfil, textvariable=self.str_perfil_ativo, state="readonly", width=25)
+        self.cb_perfil = ttk.Combobox(frame_perfil, textvariable=self.str_perfil_ativo, state="readonly", width=22)
         self.cb_perfil.grid(row=0, column=1, sticky="w", padx=5, pady=5)
         self.comboboxes.append(self.cb_perfil)
         
-        self.btn_novo_perfil = tk.Button(frame_perfil, text="➕ Novo Perfil", font=("Arial", 9, "bold"))
-        self.btn_novo_perfil.grid(row=0, column=2, sticky="w", padx=5, pady=5)
+        # Container horizontal invisível para agrupar as ações
+        frame_acoes_perfil = tk.Frame(frame_perfil)
+        frame_acoes_perfil.grid(row=0, column=2, sticky="w", padx=5, pady=5)
+        self.frames_principais.append(frame_acoes_perfil)
+        
+        self.btn_novo_perfil = tk.Button(frame_acoes_perfil, text="➕ Novo", font=("Arial", 9, "bold"))
+        self.btn_novo_perfil.pack(side="left", padx=2)
         self.botoes_secundarios.append(self.btn_novo_perfil)
+        
+        self.btn_editar_perfil = tk.Button(frame_acoes_perfil, text="✏️ Editar", font=("Arial", 9, "bold"))
+        self.btn_editar_perfil.pack(side="left", padx=2)
+        self.botoes_secundarios.append(self.btn_editar_perfil)
+        
+        self.btn_excluir_perfil = tk.Button(frame_acoes_perfil, text="❌ Excluir", font=("Arial", 9, "bold"))
+        self.btn_excluir_perfil.pack(side="left", padx=2)
+        self.botoes_secundarios.append(self.btn_excluir_perfil)
         
         # Linha 1: Notion Token
         lbl_notion = tk.Label(frame_perfil, text="Notion Token:")
@@ -130,36 +143,44 @@ class CardForgeView:
         # =========================================================================
         # SEÇÃO 2: ÁREA DE ENTRADA DO MATERIAL DE ESTUDO
         # =========================================================================
-        frame_estudo = tk.LabelFrame(self.root, text=" Material de Estudo para Conversão ", font=FONTS.get("titulo_secao"), padx=10, pady=10)
-        frame_estudo.pack(fill="both", expand=True, padx=padx_janela, pady=gap_medio)
-        self.label_frames_cards.append(frame_estudo)
+        frame_botoes = tk.Frame(self.root, pady=5)
+        frame_botoes.pack(fill="x", padx=15, pady=5)
+        self.frames_principais.append(frame_botoes)
         
-        self.txt_material = scrolledtext.ScrolledText(frame_estudo, height=10, wrap="word", font=("Consolas", 10))
-        self.txt_material.pack(fill="both", expand=True, padx=5, pady=5)
+        self.btn_salvar = tk.Button(frame_botoes, text="💾 Guardar Configurações", height=2, font=("Arial", 9, "bold"))
+        self.btn_salvar.pack(side="left", expand=True, fill="x", padx=2)
+        self.botoes_secundarios.append(self.btn_salvar)
         
-        self.btn_generar = tk.Button(frame_estudo, text="🚀 Gerar Flashcards e Sincronizar com o Anki", font=("Arial", 11, "bold"), height=2)
-        self.btn_generar.pack(fill="x", padx=5, pady=5)
-        self.botoes_destaque.append(self.btn_generar)
+        self.btn_gerar_notion = tk.Button(frame_botoes, text="✨ Sincronizar via Notion", height=2, font=("Arial", 9, "bold"))
+        self.btn_gerar_notion.pack(side="left", expand=True, fill="x", padx=2)
+        self.botoes_destaque.append(self.btn_gerar_notion)
+
+        self.btn_gerar_manual = tk.Button(frame_botoes, text="📝 Converter Texto da Tela", height=2, font=("Arial", 9, "bold"))
+        self.btn_gerar_manual.pack(side="left", expand=True, fill="x", padx=2)
+        self.botoes_destaque.append(self.btn_gerar_manual)
 
         # =========================================================================
         # SEÇÃO 3: CONSOLE DE LOGS EM TEMPO REAL
         # =========================================================================
-        frame_logs = tk.LabelFrame(self.root, text=" Console de Operações em Tempo Real ", font=FONTS.get("titulo_secao"), padx=10, pady=5)
-        frame_logs.pack(fill="x", padx=padx_janela, pady=gap_medio)
-        self.label_frames_cards.append(frame_logs)
+        self.lbl_input_title = tk.Label(self.root, text="Material de Estudo para Conversão Manual:", font=("Arial", 9))
+        self.lbl_input_title.pack(anchor="w", padx=15, pady=(5,0))
         
-        self.txt_console = scrolledtext.ScrolledText(frame_logs, height=8, wrap="word", font=("Consolas", 9))
-        self.txt_console.pack(fill="x", padx=5, pady=5)
-        self.txt_console.config(state="disabled")
+        # Caixa do meio (onde você digita o texto manual)
+        self.txt_input = scrolledtext.ScrolledText(self.root, height=8, font=("Arial", 10), bd=1, relief="solid")
+        self.txt_input.pack(fill="x", padx=15, pady=(5, 5))
+
+        self.lbl_log_title = tk.Label(self.root, text="Histórico de Execução e Logs do Sistema:", font=("Arial", 9))
+        self.lbl_log_title.pack(anchor="w", padx=15, pady=(5,0))
         
-        # Iniciar sistema de escuta de temas dinâmicos
-        self.atualizar_tema_visual()
-        self.cb_tema.bind("<<ComboboxSelected>>", lambda e: self.atualizar_tema_visual())
+        # Caixa do fundo (onde aparecem as mensagens roxas de sucesso/erro)
+        self.txt_log = scrolledtext.ScrolledText(self.root, height=8, font=("Consolas", 10), bd=1, relief="solid")
+        self.txt_log.pack(fill="both", expand=True, padx=15, pady=(5, 15))
 
     # =========================================================================
     # ENGENHARIA DE MÉTODOS DE DADOS DA INTERFACE
     # =========================================================================
     def toggle_senha_api(self):
+        """Alterna a visibilidade da OpenRouter Key."""
         if self.ent_api_key.cget("show") == "*":
             self.ent_api_key.config(show="")
             self.btn_toggle_key.config(text="🔒")
@@ -167,17 +188,28 @@ class CardForgeView:
             self.ent_api_key.config(show="*")
             self.btn_toggle_key.config(text="👁️")
 
+    def toggle_visibilidade(self, campo_entry, botao_clicado):
+        """Método genérico que o seu Controller usa para alternar senhas."""
+        if campo_entry.cget("show") == "*":
+            campo_entry.config(show="")
+            botao_clicado.config(text="🔒")
+        else:
+            campo_entry.config(show="*")
+            botao_clicado.config(text="👁️")
+
     def log(self, mensagem):
-        self.txt_console.config(state="normal")
-        self.txt_console.insert(tk.END, f"{mensagem}\n")
-        self.txt_console.see(tk.END)
-        self.txt_console.config(state="disabled")
+        """Redireciona as mensagens corretamente para o seu novo txt_log."""
+        self.txt_log.config(state="normal")
+        self.txt_log.insert(tk.END, f"{mensagem}\n")
+        self.txt_log.see(tk.END)
+        self.txt_log.config(state="disabled")
         self.root.update_idletasks()
 
     def limpar_console(self):
-        self.txt_console.config(state="normal")
-        self.txt_console.delete("1.0", tk.END)
-        self.txt_console.config(state="disabled")
+        """Limpa o seu histórico de logs atualizado."""
+        self.txt_log.config(state="normal")
+        self.txt_log.delete("1.0", tk.END)
+        self.txt_log.config(state="disabled")
 
     def obter_dados_campos(self):
         """
@@ -216,7 +248,7 @@ class CardForgeView:
         if mod_p in MODELOS_PRINCIPAIS:
             self.cb_modelo_principal.set(mod_p)
         else:
-            self.cb_modelo_principal.set(MODELOS_PRINCIPAIS[0])
+            self.cb_modelo_principal.set(MODELOS_PRINCIPAL[0])
             
         # Restaura a seleção do Modelo Reserva
         mod_r = dados.get("AI_MODEL_FALLBACK")
@@ -284,5 +316,30 @@ class CardForgeView:
         for btn_s in self.botoes_secundarios:
             btn_s.configure(bg=cores["fundo_principal"], fg=cores["texto"], activebackground=cores["fundo_card"], activeforeground=cores["texto"], bd=1, relief="solid", cursor="hand2")
             
-        self.txt_material.configure(bg=cores["fundo_principal"], fg=cores["texto"], insertbackground=cores["texto"])
-        self.txt_console.configure(bg=cores["console_bg"], fg=cores["console_fg"])
+        self.txt_input.configure(bg=cores["fundo_principal"], fg=cores["texto"], insertbackground=cores["texto"])
+        self.txt_log.configure(bg=cores["console_bg"], fg=cores["console_fg"], insertbackground=cores["texto"])
+        
+    def abrir_popup_editar_perfil(self, nome_atual, confirmar_callback):
+        popup = tk.Toplevel(self.root)
+        popup.title("Editar Nome do Perfil")
+        popup.geometry("340x150")
+        popup.grab_set()
+        popup.resizable(False, False)
+        
+        cores_atuais = TEMAS[self.str_tema.get()]
+        popup.configure(bg=cores_atuais["fundo_card"])
+        
+        tk.Label(popup, text=f"Novo nome para '{nome_atual}':", bg=cores_atuais["fundo_card"], fg=cores_atuais["texto"], font=("Arial", 10, "bold")).pack(pady=10)
+        ent_nome = tk.Entry(popup, bg=cores_atuais["fundo_principal"], fg=cores_atuais["texto"], bd=1, relief="solid", width=30, insertbackground="white")
+        ent_nome.pack(pady=5)
+        ent_nome.insert(0, nome_atual)
+        ent_nome.focus()
+        
+        def acao_confirmar():
+            novo_nome = ent_nome.get().strip()
+            if novo_nome:
+                confirmar_callback(nome_atual, novo_nome, popup)
+            else:
+                messagebox.showwarning("Aviso", "O nome não pode ser vazio!", parent=popup)
+
+        tk.Button(popup, text="Salvar Alteração", bg=cores_atuais["destaque"], fg="white", bd=0, padx=15, pady=5, font=("Arial", 9, "bold"), command=acao_confirmar).pack(pady=10)    

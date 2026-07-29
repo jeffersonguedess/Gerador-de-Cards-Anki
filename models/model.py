@@ -89,144 +89,124 @@ class CardForgeModel:
     # PARTE 2: MOTOR DE INTEGRAÇÃO COM IA (OPENROUTER) E ANKI
     # =========================================================================
     def gerar_e_enviar_cards(self, dados_perfil, texto_estudo, callback_log):
-        """
-        Gera os flashcards via OpenRouter (com fallback) e envia para o Anki Connect.
-        Fix: Erro de variáveis 'log_callback' sincronizadas para 'callback_log'.
-        """
-        try:
-            callback_log("🤖 Inicializando motor de inteligência artificial...")
-            
-            if not dados_perfil.get("OPENROUTER_API_KEY"):
-                callback_log("❌ Chave API do OpenRouter não configurada neste perfil!")
-                return False
-                
-            client = OpenAI(
-                base_url="https://openrouter.ai/api/v1", 
-                api_key=dados_perfil["OPENROUTER_API_KEY"]
-            )
-            
-            # Construção do Prompt estruturado para Omissão de Palavras (Cloze)
-            prompt_sistema = (
-                "Você é um especialista em extrair conceitos de engenharia, programação e TI, "
-                "transformando-os em flashcards eficazes para o Anki no formato de Omissão de Palavras (Cloze Deletion).\n"
-                "Regra crucial: Retorne estritamente um objeto JSON com uma lista contendo os cards gerados. "
-                "Cada item deve ser um dicionário com a chave 'texto'.\n"
-                "Exemplo de formato de saída esperado:\n"
-                '{"cards": [{"texto": "O comando {{c1::pwd}} serve para mostrar o diretório atual no Linux."}]}'
-            )
-            
-            prompt_usuario = f"Gere flashcards com base no seguinte material de estudo:\n\n{texto_estudo}"
-            
-            conteudo_resposta = None
-            modelo_tentativa = dados_perfil.get("AI_MODEL", MODELOS_PRINCIPAIS[0])
-            
-            try:
-                callback_log(f"🧠 Enviando requisição para o Modelo Principal: {modelo_tentativa}...")
-                response = client.chat.completions.create(
-                    model=modelo_tentativa,
-                    messages=[
-                        {"role": "system", "content": prompt_sistema},
-                        {"role": "user", "content": prompt_usuario}
-                    ]
-                )
-                conteudo_resposta = response.choices[0].message.content
-            except Exception as error_principal:
-                modelo_fallback = dados_perfil.get("AI_MODEL_FALLBACK", MODELOS_RESERVA[0])
-                callback_log(f"⚠ Modelo principal falhou: {error_principal}")
-                callback_log(f"🔄 Acionando Modelo de Reserva imediatamente: {modelo_fallback}...")
-                
-                response = client.chat.completions.create(
-                    model=modelo_fallback,
-                    messages=[
-                        {"role": "system", "content": prompt_sistema},
-                        {"role": "user", "content": prompt_usuario}
-                    ]
-                )
-                conteudo_resposta = response.choices[0].message.content
+        origem = dados_perfil.get("origem", "notion")
+        token = dados_perfil.get("token", "").strip()
+        id_notion = dados_perfil.get("id_notion", "").strip()
+        api_key_or = dados_perfil.get("api_key_or", "").strip()
+        deck_name = dados_perfil.get("deck_name", "Default").strip()
+        model_principal = dados_perfil.get("model_principal", "").strip()
+        model_fallback = dados_perfil.get("model_fallback", "").strip()
+        nome_perfil = dados_perfil.get("nome_perfil", "Log").strip()
 
-            if not conteudo_resposta:
-                callback_log("❌ Nenhuma resposta foi obtida das Inteligências Artificiais.")
-                return False
-                
-            # Limpeza e Parsing do JSON retornado pela IA
-            try:
-                # Remove possíveis marcações de markdown de bloco de código json, se houverem
-                if "```json" in conteudo_resposta:
-                    conteudo_resposta = conteudo_resposta.split("```json")[1].split("```")[0].strip()
-                elif "```" in conteudo_resposta:
-                    conteudo_resposta = conteudo_resposta.split("```")[1].split("```")[0].strip()
-                
-                dados_cards = json.loads(conteudo_resposta.strip())
-                lista_cards = dados_cards.get("cards", [])
-            except Exception as e_json:
-                callback_log("⚠ Falha ao parsear JSON nativo da IA. Tentando fatiamento alternativo...")
-                # Fallback de segurança: Caso a IA mande texto puro separado por quebras ou traços
-                lista_cards = [{"texto": bloco.strip()} for bloco in conteudo_resposta.split("---") if bloco.strip()]
+        callback_log(f"\n🚀 [EXECUÇÃO] Iniciando motor via: {origem.upper()}")
+        
+        texto_para_ia = ""
+        blocos_novos = []
+        caminho_hist = os.path.join("historicos", f"{nome_perfil}_historico.txt")
+        os.makedirs("historicos", exist_ok=True)
 
-            if not lista_cards:
-                callback_log("⚠ Nenhum card válido estruturado foi identificado na resposta.")
-                return False
-
-            # Processamento de Histórico e Proteção de Duplicatas
-            deck_name = dados_perfil.get("DECK_NAME", "CardForge_Deck")
-            caminho_hist = f"historicos/{deck_name}.txt"
-            
-            historio_existente = set()
+        if origem == "notion":
+            callback_log("📖 Lendo blocos novos da página do Notion...")
+            historico = set()
             if os.path.exists(caminho_hist):
                 with open(caminho_hist, "r", encoding="utf-8") as f:
-                    historio_existente = set(linha.strip() for linha in f if linha.strip())
+                    historico = set(l.strip() for l in f if l.strip())
 
-            cards_com_sucesso = 0
-            blocos_novos = []
-
-            callback_log(f"🚀 Verificando duplicatas e injetando no Anki (Deck: {deck_name})...")
+            import requests, hashlib
+            url = f"https://api.notion.com/v1/blocks/{id_notion}/children"
+            headers = {"Authorization": f"Bearer {token}", "Notion-Version": "2022-06-28", "Content-Type": "application/json"}
             
-            for item in lista_cards:
-                texto_card = item.get("texto", "").strip()
-                if not texto_card:
-                    continue
-                    
-                # Criação do hash md5 único do card para controle anti-duplicação
-                card_hash = hashlib.md5(texto_card.encode("utf-8")).hexdigest()
-                
-                if card_hash in historio_existente:
-                    continue
-                    
-                blocos_novos.append({"hash": card_hash, "texto": texto_card})
-                
-                # Payload oficial de comunicação com a API do Anki Connect
-                payload = {
-                    "action": "addNote",
-                    "version": 6,
-                    "params": {
-                        "note": {
-                            "deckName": deck_name,
-                            "modelName": "Omissão de palavras",
-                            "fields": {"Texto": texto_card},
-                            "tags": ["concursos", "cardforge_pericia"]
-                        }
-                    }
-                }
-                
-                try:
-                    res_anki = requests.post(ANKI_CONNECT_URL, json=payload).json()
-                    if not res_anki.get("error"):
-                        cards_com_sucesso += 1
-                except:
-                    callback_log("❌ Falha crítica: O Anki Connect recusou a conexão. O seu Anki está aberto?")
+            try:
+                response = requests.get(url, headers=headers, params={"page_size": 100})
+                if response.status_code != 200:
+                    callback_log(f"❌ Erro de API no Notion ({response.status_code}): {response.text}")
                     return False
+            except Exception as e:
+                callback_log(f"❌ Falha de conexão com o Notion: {e}")
+                return False
 
-            # Salvando as hashes dos novos cards gerados
-            if cards_com_sucesso > 0:
-                with open(caminho_hist, "a", encoding="utf-8") as f:
-                    for item in blocos_novos:
-                        f.write(f"{item['hash']}\n")
-                callback_log(f"💾 Sucesso absoluto! {cards_com_sucesso} novos flashcards sincronizados no Anki.")
-                return cards_com_sucesso
-            else:
-                callback_log("⚠ Processo concluído: Nenhum card inédito inserido (Conteúdo já existia no histórico).")
-                return 0
-                
-        except Exception as e:
-            callback_log(f"❌ Falha crítica no motor de dados: {e}")
+            dados_notion = response.json()
+            for bloco in dados_notion.get("results", []):
+                b_type = bloco.get("type")
+                if not b_type: continue
+                conteudo_bloco = bloco.get(b_type)
+                if isinstance(conteudo_bloco, dict) and "rich_text" in conteudo_bloco:
+                    texto_puro = "".join([t.get("plain_text", "") for t in conteudo_bloco["rich_text"]]).strip()
+                    if len(texto_puro) < 5: continue
+                    bloco_hash = hashlib.md5(texto_puro.encode("utf-8")).hexdigest()
+                    if bloco_hash not in historico:
+                        blocos_novos.append({"texto": texto_puro, "hash": bloco_hash})
+
+            if not blocos_novos:
+                callback_log(f"✨ Tudo sincronizado! Nenhuma anotação inédita no Notion.")
+                return "sincronizado"
+
+            callback_log(f"💡 Foram localizadas {len(blocos_novos)} novas linhas estruturadas.")
+            texto_para_ia = "\n".join([item["texto"] for item in blocos_novos])
+        
+        else:
+            # Pega o texto que veio direto da tela (passado via parâmetro texto_estudo)
+            texto_para_ia = texto_estudo
+            if not texto_para_ia or len(texto_para_ia) < 5:
+                callback_log("⚠️ O texto inserido na tela está vazio ou é muito curto.")
+                return False
+            callback_log("📝 Processando texto manual inserido na interface...")
+
+        import json, requests
+        from openai import OpenAI
+        ANKI_CONNECT_URL = "http://localhost:8765"
+        
+        client = OpenAI(api_key=api_key_or, base_url="https://openrouter.ai/api/v1")
+        prompt_sistema = """Você é um assistente especialista em concursos de TI e criação de flashcards para o Anki. Seu objetivo é receber anotações de estudo e transformá-las em flashcards no formato de Omissão de Palavras (Cloze Deletion). Regras: 1. Esconda apenas comandos, parâmetros ou termos técnicos usando {{c1::termo}}. 2. Seja extremamente direto. Responda obrigatoriamente com um OBJETO JSON contendo uma chave chamada "cards". Exemplo: {"cards": [{"texto": "O comando {{c1::ls -la}} lista arquivos ocultos."}]}"""
+        
+        lista_de_cards = []
+        callback_log(f"🤖 Solicitando geração via inteligência principal ({model_principal})...")
+        
+        try:
+            res = client.chat.completions.create(
+                model=model_principal, messages=[{"role": "system", "content": prompt_sistema}, {"role": "user", "content": texto_para_ia}],
+                temperature=0.2, max_tokens=2000, response_format={'type': 'json_object'}
+            )
+            lista_de_cards = json.loads(res.choices[0].message.content).get("cards", [])
+        except Exception as err_principal:
+            callback_log(f"⚠️ Alerta: Modelo principal falhou/sem saldo: {err_principal}")
+            callback_log(f"🔄 [CONTINGÊNCIA] Acionando rota inteligente reserva: {model_fallback}...")
+            try:
+                res = client.chat.completions.create(
+                    model=model_fallback, messages=[{"role": "system", "content": prompt_sistema}, {"role": "user", "content": texto_para_ia}],
+                    temperature=0.2, max_tokens=2000, response_format={'type': 'json_object'}
+                )
+                lista_de_cards = json.loads(res.choices[0].message.content).get("cards", [])
+                callback_log("✅ Rota reserva salvou a execução com sucesso!")
+            except Exception as err_fallback:
+                callback_log(f"❌ Erro Crítico: A IA de contingência também falhou: {err_fallback}")
+                return False
+
+        if not lista_de_cards:
+            callback_log("⚠️ Nenhuma estrutura de card pôde ser extraída.")
             return False
+
+        callback_log(f"📥 Processando {len(lista_de_cards)} cards gerados. Injetando no Anki Connect...")
+        try: requests.post(ANKI_CONNECT_URL, json={"action": "createDeck", "version": 6, "params": {"deck": deck_name}})
+        except: pass
+        
+        cards_com_sucesso = 0
+        for card in lista_de_cards:
+            if "texto" not in card: continue
+            payload = {"action": "addNote", "version": 6, "params": {"note": {"deckName": deck_name, "modelName": "Omissão de palavras", "fields": {"Texto": card["texto"]}, "tags": ["concursos", "theme_forge"]}}}
+            try:
+                res_anki = requests.post(ANKI_CONNECT_URL, json=payload).json()
+                if not res_anki.get("error"): cards_com_sucesso += 1
+            except:
+                callback_log("❌ Falha crítica: O Anki Connect recusou a conexão. O seu Anki está aberto?")
+                return False
+
+        if cards_com_sucesso > 0:
+            if origem == "notion" and blocos_novos:
+                with open(caminho_hist, "a", encoding="utf-8") as f:
+                    for item in blocos_novos: f.write(f"{item['hash']}\n")
+            callback_log(f"💾 Sucesso absoluto! {cards_com_sucesso} flashcards criados.")
+            return cards_com_sucesso
+        else:
+            callback_log("⚠ Nenhum card pôde ser inserido no Anki (possível conteúdo duplicado).")
+            return 0
