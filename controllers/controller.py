@@ -137,13 +137,14 @@ class CardForgeController:
         nome = self.view.cb_perfil.get()
         if not nome: return
         
+        # Mapeamento cirúrgico corrigindo os nomes reais dos campos da View
         dados = {
             "token": self.view.ent_notion_token.get().strip(),
-            "id_notion": self.view.ent_notion_id.get().strip(),
-            "api_key_or": self.view.ent_openrouter_key.get().strip(),
+            "id_notion": self.view.ent_database_id.get().strip(),       # Corrigido!
+            "api_key_or": self.view.ent_api_key.get().strip(),          # Corrigido!
             "deck_name": self.view.ent_deck_name.get().strip(),
-            "model_principal": self.view.str_model_principal.get().strip(),
-            "model_fallback": self.view.str_model_fallback.get().strip(),
+            "model_principal": self.view.cb_modelo_principal.get().strip(), # Corrigido!
+            "model_fallback": self.view.cb_modelo_reserva.get().strip(),    # Corrigido!
             "origem": origem,
             "texto_manual": ""
         }
@@ -157,15 +158,31 @@ class CardForgeController:
         threading.Thread(target=self._executar_fluxo_background, args=(nome, dados), daemon=True).start()
 
     def _executar_fluxo_background(self, nome, dados):
-        resultado = self.model.fluxo_geracao_core(nome, dados, self.view.log)
-        
-        if isinstance(resultado, int) and resultado > 0:
-            messagebox.showinfo("Concluído", f"{resultado} flashcards foram enviados para o Anki!")
-        elif resultado == "sincronizado":
-            messagebox.showinfo("Sincronizado", "Tudo pronto! Nenhuma nota inédita encontrada no Notion.")
+        try:
+            # 1. Extrai o texto correto dependendo da origem (notion ou manual)
+            if dados.get("origem") == "notion":
+                # Se for do notion, o seu model vai ler a API usando os tokens, 
+                # então passamos o texto_estudo como vazio ou tratamos dentro do fluxo.
+                texto_estudo = "" 
+            else:
+                texto_estudo = dados.get("texto_manual", "")
+
+            # 2. Chama o método real do seu model com a assinatura exata dele
+            self.model.gerar_e_enviar_cards(
+                dados_perfil=dados, 
+                texto_estudo=texto_estudo, 
+                callback_log=self.view.log
+            )
             
-        self.view.btn_gerar_notion.config(state="normal")
-        self.view.btn_gerar_manual.config(state="normal")    
+            self.view.log(f"🎉 Processamento concluído com sucesso para o perfil '{nome}'!")
+                
+        except Exception as e:
+            self.view.log(f"❌ Erro crítico no motor de geração: {str(e)}")
+            
+        finally:
+            # Devolve a vida aos botões da interface de forma segura
+            self.view.root.after(0, lambda: self.view.btn_gerar_notion.config(state="normal"))
+            self.view.root.after(0, lambda: self.view.btn_gerar_manual.config(state="normal"))   
     
     def handle_editar_perfil(self):
         """Dispara a janela para renomear a matéria selecionada."""

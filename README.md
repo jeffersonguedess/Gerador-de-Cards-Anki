@@ -41,6 +41,27 @@ O projeto foi desenvolvido de forma estritamente incremental e cronológica. Tod
 | **v5.1** | *Customização Visual* | Primeiro modelo de estilização *Dark Purple*. |
 | **v6.0** | *Arquitetura MVC & CRUD* | Modularização completa do ecossistema dividida estritamente em Model-View-Controller, acoplamento assíncrono de eventos, gerenciador visual dinâmico de perfis (Criação, Edição e Exclusão rápida) e correção de estados visuais na interface. |
 
+---
+
+## 📖 Manual do Usuário (Guia Rápido)
+
+### 🧠 1. Regras de Estruturação no Notion
+Para que o motor capture os seus estudos corretamente, escreva uma linha curta e direta por comando ou conceito. O app gera um hash MD5 único de cada linha enviada, **filtrando automaticamente o que já foi enviado** e gerando cartões stritamente para as linhas inéditas.
+
+### 📂 2. Gerenciando Perfis e Matérias
+Cada matéria possui suas próprias credenciais e preferências salvas localmente:
+* **Criar/Editar:** Clique em `+ Novo` ou `Editar` para gerenciar as chaves e modelos de IA do perfil ativo.
+* **Estrutura de Decks:** No campo *Nome do Deck*, use dois pontos duplos (`::`) para segmentar subpastas organizacionais no Anki (Ex: `Git::Comandos`).
+* Sempre clique no botão roxo `💾 Salvar Perfil` após alterar qualquer configuração.
+
+### ⚡ 3. Modos de Sincronização
+* **Modo A (Automático via Notion):** Selecione o perfil de ambiente e clique em `🍇 Sincronizar via Notion`. O fluxo de logs assíncrono exibirá o andamento em tempo real.
+* **Modo B (Manual):** Cole o seu resumo diretamente na caixa *"Material de Estudo para Conversão Manual"* e clique em `📝 Converter Texto da Tela`.
+
+> 📥 **Quer o manual completo e diagramado no tema Dark Purple?** Acesse a nossa documentação oficial em PDF: **[Baixar Manual do Usuário (PDF)](./docs/manual_cardforge.pdf)**
+
+---
+
 ## ⚙️ Como Executar o Projeto
 
 1. Clone o repositório.
